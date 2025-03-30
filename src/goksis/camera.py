@@ -819,6 +819,29 @@ class Camera(Device):
             raise Identity(f"{e}")
 
     @Checker.device_connected
+    def is_image_ready(self) -> bool:
+        """
+        Returns the availability of the image
+
+        Returns
+        -------
+        bool
+            True if the image is ready
+
+        Raises
+        ------
+        DeviceNotConnected
+            When device is not connected
+        Identity
+            All other errors
+        """
+        try:
+            return bool(self.device.ImageReady)
+        except Exception as e:
+            self.logger.error(f"{e}")
+            raise Identity(f"{e}")
+
+    @Checker.device_connected
     def get_image(self, wait: bool = True, telescope=None) -> Union[Fits, FitsArray]:
         """
         Returns a Fits object of the Image
@@ -851,7 +874,7 @@ class Camera(Device):
         if wait:
             self.wait()
 
-        if not self.device.ImageReady:
+        if not self.is_image_ready():
             self.logger.error("No image available")
             raise NotFound("No image available")
 

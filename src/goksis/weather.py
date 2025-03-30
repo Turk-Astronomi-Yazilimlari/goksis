@@ -78,9 +78,7 @@ class Weather(Device):
             "node": self.driver,
             "description": self.device.Description,
             "driver": self.device.DriverInfo,
-            "driver_version": self.device.DriverVersion,
-            "sensor": self.device.SensorName,
-            "sensor_type": self.device.SensorType
+            "driver_version": self.device.DriverVersion
         }
 
     def is_connected(self) -> bool:
