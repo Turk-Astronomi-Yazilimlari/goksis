@@ -823,7 +823,7 @@ class Camera(Device):
                     raise NotAvailable("The given filter wheel is not ready")
 
                 if filter_order is not None:
-                    self.filter_wheel.set_position(filter_order)
+                    self.filter_wheel.set_position(filter_order, wait=True)
 
             self.device.StartExposure(duration_to_use, light)
         except Exception as e:
