@@ -238,7 +238,7 @@ class Telescope(Device):
         )
 
     @Checker.device_connected
-    def get_current_location(self) -> EarthLocation:
+    def get_location(self) -> EarthLocation:
         try:
             latitude = self.device.SiteLatitude
             longitude = self.device.SiteLongitude

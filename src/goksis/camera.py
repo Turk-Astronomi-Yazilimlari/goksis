@@ -10,6 +10,7 @@ import numpy as np
 from astropy import units
 from astropy.wcs import WCS
 
+from goksis import FilterWheel
 from goksis.constants import STATUS_CODES
 from goksis.errors import NotFound, NotAvailable, AlreadyIs, Identity
 from goksis.models import Device
@@ -19,11 +20,12 @@ from goksis.utils import Fixer, Checker, CameraSize, CameraTemperature, CameraPi
 
 class Camera(Device):
     def __init__(self, address: str, port: int, device_no: int = 0, protocol: str = 'http',
-                 logger: Optional[Logger] = None):
+                 filter_wheel: Optional[FilterWheel] = None, logger: Optional[Logger] = None):
         self.logger = Fixer.logger(logger)
 
         try:
             self.device = Ascom(f'{address}:{port}', device_no, protocol=protocol)
+            self.filter_wheel = filter_wheel
             _ = self.device.Connected
 
         except Exception as e:
@@ -773,7 +775,7 @@ class Camera(Device):
 
     @Checker.device_connected
     def start_exposure(self, duration: Union[int, float, units.Quantity],
-                       light: bool = True) -> None:
+                       light: bool = True, filter_order: Optional[int] = None) -> None:
         """
         Start's an exposure
 
@@ -783,6 +785,8 @@ class Camera(Device):
             exposure duration
         light: bool
             True if Light (light or flat), False if (bias or dark)
+        filter_order: Optional[int]
+            The order of filter wheel if filter whell is available
 
         Returns
         -------
@@ -813,6 +817,14 @@ class Camera(Device):
             duration_to_use = duration
 
         try:
+
+            if self.filter_wheel is not None:
+                if not self.filter_wheel.is_available():
+                    raise NotAvailable("The given filter wheel is not ready")
+
+                if filter_order is not None:
+                    self.filter_wheel.set_position(filter_order)
+
             self.device.StartExposure(duration_to_use, light)
         except Exception as e:
             self.logger.error(f"{e}")

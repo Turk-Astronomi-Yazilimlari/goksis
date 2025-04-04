@@ -233,6 +233,27 @@ class FilterWheel(Device):
         return bool(self.get_position() == -1)
 
     @Checker.device_connected
+    def is_available(self) -> bool:
+        """
+        Checks if the device is available
+
+        Returns
+        -------
+        bool
+            True if the device is available
+
+        Raises
+        ------
+        DeviceNotConnected
+            When device is not connected
+        Identity
+            All other errors
+        """
+        self.logger.info("Starting")
+
+        return not self.is_moving()
+
+    @Checker.device_connected
     def get_current_filter(self) -> str:
         """
         Returns the current filter name on the device
