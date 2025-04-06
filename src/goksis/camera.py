@@ -820,7 +820,7 @@ class Camera(Device):
 
             if self.filter_wheel is not None:
                 if not self.filter_wheel.is_available():
-                    raise NotAvailable("The given filter wheel is not ready")
+                    raise NotAvailable("Connected filter wheel is not available")
 
                 if filter_order is not None:
                     self.filter_wheel.set_position(filter_order, wait=True)

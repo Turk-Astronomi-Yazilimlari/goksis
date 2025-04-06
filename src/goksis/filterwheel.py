@@ -4,6 +4,7 @@ from typing import Optional, Dict, Any, Tuple, Union, List
 
 from alpaca.filterwheel import FilterWheel as Ascom
 
+from goksis import Focuser
 from goksis.errors import Identity, NotAvailable
 from goksis.models import Device
 from goksis.utils import Fixer, Checker
@@ -11,11 +12,12 @@ from goksis.utils import Fixer, Checker
 
 class FilterWheel(Device):
     def __init__(self, address: str, port: int, device_no: int = 0, protocol: str = 'http',
-                 logger: Optional[Logger] = None):
+                 focuser: Optional[Focuser] = None, logger: Optional[Logger] = None):
         self.logger = Fixer.logger(logger)
 
         try:
             self.device = Ascom(f'{address}:{port}', device_no, protocol=protocol)
+            self.focuser = focuser
             _ = self.device.Connected
 
         except Exception as e:
@@ -27,6 +29,37 @@ class FilterWheel(Device):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}('{self.device}')"
+
+    @Checker.device_connected
+    def __set_offset(self, target_filter: Union[str, int]) -> None:
+        """
+        Moves connected focuser with the available offset.
+
+        Raises
+        ------
+        DeviceNotConnected
+            When device is not connected
+        Identity
+            All other errors
+        """
+        self.logger.info("Starting")
+
+        if self.focuser is None:
+            return
+        try:
+            if isinstance(target_filter, str):
+                target_filter_to_use = target_filter
+            else:
+                target_filter_to_use = self.get_names()[target_filter]
+
+            offsets = self.named_offset()
+            current_offset = offsets[self.get_current_filter()]
+            next_offset = offsets[target_filter_to_use]
+            absolute_amount = next_offset - current_offset
+            self.focuser.move(absolute_amount, wait=True)
+        except Exception as e:
+            self.logger.error(f"{e}")
+            raise Identity(f"{e}")
 
     @property
     @Checker.device_connected
@@ -251,6 +284,11 @@ class FilterWheel(Device):
         """
         self.logger.info("Starting")
 
+        if self.focuser is not None:
+            if not self.focuser.is_available():
+                self.logger.error("Connected focuser is not available")
+                return False
+
         return not self.is_moving()
 
     @Checker.device_connected
@@ -321,6 +359,8 @@ class FilterWheel(Device):
             position = self.get_names().index(pos)
 
         try:
+            self.__set_offset(position)
+
             self.device.Position = position
         except Exception as e:
             self.logger.error(f"{e}")
